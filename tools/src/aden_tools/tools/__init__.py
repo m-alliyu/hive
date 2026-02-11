@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 from .apollo_tool import register_tools as register_apollo
 from .csv_tool import register_tools as register_csv
 from .email_tool import register_tools as register_email
+from .excel_read_tool import register_tools as register_excel_read
 from .example_tool import register_tools as register_example
 from .file_system_toolkits.apply_diff import register_tools as register_apply_diff
 from .file_system_toolkits.apply_patch import register_tools as register_apply_patch
@@ -91,6 +92,7 @@ def register_all_tools(
     register_execute_command(mcp)
     register_data_tools(mcp)
     register_csv(mcp)
+    register_excel_read(mcp)
 
     return [
         "example_tool",
@@ -110,10 +112,13 @@ def register_all_tools(
         "list_data_files",
         "serve_file_to_user",
         "csv_read",
+        "csv_read_path",
         "csv_write",
         "csv_append",
         "csv_info",
         "csv_sql",
+        "excel_read",
+        "excel_sheet_names",
         "apollo_enrich_person",
         "apollo_enrich_company",
         "apollo_search_people",

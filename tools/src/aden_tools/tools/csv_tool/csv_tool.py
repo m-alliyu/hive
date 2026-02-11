@@ -2,6 +2,7 @@
 
 import csv
 import os
+from pathlib import Path
 
 from fastmcp import FastMCP
 
@@ -10,6 +11,71 @@ from ..file_system_toolkits.security import get_secure_path
 
 def register_tools(mcp: FastMCP) -> None:
     """Register CSV tools with the MCP server."""
+
+    @mcp.tool()
+    def csv_read_path(
+        file_path: str,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> dict:
+        """
+        Read a CSV file by path and return its contents.
+
+        Use when the file is outside the session sandbox (e.g. user-provided source folder).
+        Pass the full path to the CSV file (absolute or relative).
+
+        Args:
+            file_path: Full path to the CSV file (absolute or relative). Must have .csv extension.
+            limit: Maximum number of rows to return (None = all rows).
+            offset: Number of rows to skip from the beginning.
+
+        Returns:
+            dict with success status, columns, rows, and metadata; or error dict.
+        """
+        if offset < 0 or (limit is not None and limit < 0):
+            return {"error": "offset and limit must be non-negative"}
+        try:
+            path = Path(file_path).resolve()
+            if not path.exists():
+                return {"error": f"File not found: {file_path}"}
+            if not path.is_file():
+                return {"error": f"Not a file: {file_path}"}
+            if path.suffix.lower() != ".csv":
+                return {"error": f"File must have .csv extension: {file_path}"}
+
+            with open(path, encoding="utf-8", newline="") as f:
+                reader = csv.DictReader(f)
+                if reader.fieldnames is None:
+                    return {"error": "CSV file is empty or has no headers"}
+                columns = list(reader.fieldnames)
+                rows = []
+                for i, row in enumerate(reader):
+                    if i < offset:
+                        continue
+                    if limit is not None and len(rows) >= limit:
+                        break
+                    rows.append(row)
+
+            with open(path, encoding="utf-8", newline="") as f:
+                total_rows = sum(1 for row in csv.reader(f) if any(row)) - 1
+
+            return {
+                "success": True,
+                "path": str(path),
+                "columns": columns,
+                "column_count": len(columns),
+                "rows": rows,
+                "row_count": len(rows),
+                "total_rows": total_rows,
+                "offset": offset,
+                "limit": limit,
+            }
+        except csv.Error as e:
+            return {"error": f"CSV parsing error: {str(e)}"}
+        except UnicodeDecodeError:
+            return {"error": "File encoding error: unable to decode as UTF-8"}
+        except Exception as e:
+            return {"error": f"Failed to read CSV: {str(e)}"}
 
     @mcp.tool()
     def csv_read(
