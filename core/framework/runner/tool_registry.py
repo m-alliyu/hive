@@ -46,6 +46,10 @@ class ToolRegistry:
     # and auto-injected at call time for tools that accept them.
     CONTEXT_PARAMS = frozenset({"workspace_id", "agent_id", "session_id", "data_dir"})
 
+    # Tools that allow the LLM to pass data_dir (e.g. list_data_files to list a source folder).
+    # For these, data_dir is left in the schema so the LLM can pass it; when omitted, context is injected.
+    TOOLS_ALLOW_DATA_DIR_OVERRIDE = frozenset({"list_data_files"})
+
     def __init__(self):
         self._tools: dict[str, RegisteredTool] = {}
         self._mcp_clients: list[Any] = []  # List of MCPClient instances
@@ -441,8 +445,12 @@ class ToolRegistry:
 
         # Strip framework-internal context params from LLM-facing schema.
         # The LLM can't know these values; they're auto-injected at call time.
-        properties = {k: v for k, v in properties.items() if k not in self.CONTEXT_PARAMS}
-        required = [r for r in required if r not in self.CONTEXT_PARAMS]
+        # Exception: for tools in TOOLS_ALLOW_DATA_DIR_OVERRIDE, keep data_dir so the LLM can pass it (e.g. source folder path).
+        strip_params = self.CONTEXT_PARAMS
+        if mcp_tool.name in self.TOOLS_ALLOW_DATA_DIR_OVERRIDE:
+            strip_params = strip_params - {"data_dir"}
+        properties = {k: v for k, v in properties.items() if k not in strip_params}
+        required = [r for r in required if r not in strip_params]
 
         # Convert to framework Tool format
         tool = Tool(
