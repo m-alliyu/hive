@@ -1,0 +1,9 @@
+{
+  "hive-tools": {
+    "transport": "stdio",
+    "command": "uv",
+    "args": ["run", "python", "mcp_server.py", "--stdio"],
+    "cwd": "../../../tools",
+    "description": "Hive tools MCP server: pdf_read, csv_read, csv_read_path, excel_read, excel_sheet_names, save_data, load_data, list_data_files, serve_file_to_user"
+  }
+}

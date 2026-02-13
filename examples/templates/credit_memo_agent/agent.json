@@ -1,0 +1,8 @@
+{
+  "agent": {
+    "id": "credit_memo_agent",
+    "name": "Credit Memo Agent",
+    "version": "1.0.0",
+    "description": "Produces a banking-style credit memo for a publicly traded company from local SEC filings (PDF), financial data (CSV), and presentations."
+  }
+}
