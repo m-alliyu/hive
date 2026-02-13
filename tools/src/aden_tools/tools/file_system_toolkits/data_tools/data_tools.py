@@ -11,11 +11,20 @@ with load_data().
 from __future__ import annotations
 
 import json
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
 from aden_tools.credentials.browser import open_browser
+
+
+def _sanitize_filename_part(name: str) -> str:
+    """Replace spaces with underscores and remove characters unsafe for filenames."""
+    s = re.sub(r"[^\w\s-]", "", name)
+    s = re.sub(r"[\s]+", "_", s.strip())
+    return s or "report"
 
 
 def register_tools(mcp: FastMCP) -> None:
@@ -237,3 +246,30 @@ def register_tools(mcp: FastMCP) -> None:
             return {"files": files}
         except Exception as e:
             return {"error": f"Failed to list data files: {str(e)}"}
+
+    @mcp.tool()
+    def get_report_filename(company_name: str) -> dict:
+        """
+        Purpose
+            Get a safe, unique filename for a credit memo report: <company_name>_<datetime>.html
+
+        When to use
+            Before calling save_data for the report HTML, so the file is named consistently.
+
+        Args:
+            company_name: The company name (e.g. from intake). Spaces become underscores.
+
+        Returns:
+            Dict with "filename", "report_date" (e.g. "February 9, 2025"), "report_date_iso" (YYYY-MM-DD).
+        """
+        safe_name = _sanitize_filename_part(company_name or "report")
+        now_utc = datetime.now(timezone.utc)
+        now_str = now_utc.strftime("%Y-%m-%dT%H-%M-%S")
+        filename = f"{safe_name}_{now_str}.html"
+        report_date = now_utc.strftime("%B %d, %Y")
+        report_date_iso = now_utc.strftime("%Y-%m-%d")
+        return {
+            "filename": filename,
+            "report_date": report_date,
+            "report_date_iso": report_date_iso,
+        }
